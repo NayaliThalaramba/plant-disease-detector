@@ -1,0 +1,19 @@
+# Virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Dataset - too large for git, not needed in version control
+# Anyone cloning the repo downloads PlantVillage separately (see README)
+data/raw/
+data/processed/*.csv
+
+# OS / editor junk
+.DS_Store
+.vscode/
+*.swp
+
+# Notebook outputs (regenerate by rerunning scripts - keeps repo lean)
+notebooks/*.png
+notebooks/*.txt
+*.zip

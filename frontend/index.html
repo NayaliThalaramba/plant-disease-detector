@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaf Check — Plant Disease Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #1F332B;
+    --sage-bg: #EDF1E7;
+    --sage-bg-deep: #E2E9DA;
+    --moss: #5C7A5C;
+    --moss-dark: #46603F;
+    --clay: #9C6B45;
+    --amber: #C08A2E;
+    --paper: #FBFAF6;
+    --line: #D5DCCB;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--sage-bg);
+    color: var(--forest);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .mark {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 28px;
+    margin: 0;
+    color: var(--forest);
+  }
+
+  .lede {
+    max-width: 46ch;
+    font-size: 16px;
+    color: #445048;
+    margin: 6px 0 40px;
+  }
+
+  /* ---- Upload hero ---- */
+  .dropzone {
+    border: 1.5px dashed var(--moss);
+    border-radius: 4px;
+    background: var(--paper);
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .dropzone:hover,
+  .dropzone.dragover {
+    border-color: var(--moss-dark);
+    background: #F5F7EF;
+  }
+
+  .dropzone .leaf-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 14px;
+  }
+
+  .dropzone p {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .dropzone .sub {
+    font-size: 13px;
+    color: #6B7A6F;
+    margin-top: 6px;
+  }
+
+  .dropzone input[type="file"] {
+    display: none;
+  }
+
+  .preview-row {
+    display: none;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+
+  .preview-row.active { display: flex; }
+
+  .preview-row img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .preview-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .preview-name {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .preview-status {
+    font-size: 13px;
+    color: #6B7A6F;
+    margin-top: 2px;
+  }
+
+  button.check-btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    background: var(--moss);
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  button.check-btn:hover { background: var(--moss-dark); }
+  button.check-btn:disabled {
+    background: #A9B5A5;
+    cursor: not-allowed;
+  }
+
+  .error-msg {
+    display: none;
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: #FBF0E4;
+    border-left: 3px solid var(--amber);
+    border-radius: 2px;
+    font-size: 14px;
+    color: #6B4F1F;
+  }
+
+  .error-msg.active { display: block; }
+
+  /* ---- Results ---- */
+  .results {
+    display: none;
+    margin-top: 56px;
+    padding-top: 40px;
+    border-top: 1px solid var(--line);
+  }
+
+  .results.active { display: block; }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+
+  @media (max-width: 640px) {
+    .results-grid { grid-template-columns: 1fr; }
+  }
+
+  .image-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .image-pair figure {
+    margin: 0;
+  }
+
+  .image-pair img {
+    width: 100%;
+    border-radius: 4px;
+    display: block;
+  }
+
+  .image-pair figcaption {
+    font-size: 12px;
+    color: #6B7A6F;
+    margin-top: 6px;
+  }
+
+  .verdict-label {
+    font-size: 13px;
+    color: var(--clay);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .verdict-name {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    margin: 0 0 20px;
+    color: var(--forest);
+  }
+
+  .confidence-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .confidence-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .confidence-row .row-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+
+  .confidence-row .row-top .pct {
+    font-weight: 600;
+    color: var(--forest);
+  }
+
+  .bar-track {
+    height: 6px;
+    background: var(--sage-bg-deep);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--moss);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .confidence-row:first-child .bar-fill {
+    background: var(--forest);
+  }
+
+  .gradcam-note {
+    margin-top: 28px;
+    font-size: 13px;
+    color: #6B7A6F;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+
+  footer {
+    margin-top: 64px;
+    font-size: 12px;
+    color: #8A9587;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <span class="mark">🌿</span>
+    <h1>Leaf Check</h1>
+  </header>
+  <p class="lede">Upload a photo of a leaf and see what it might be dealing with, along with a heatmap of what the model looked at to make its call.</p>
+
+  <div class="dropzone" id="dropzone">
+    <span class="leaf-icon">📷</span>
+    <p>Drop a leaf photo here, or click to choose one</p>
+    <p class="sub">JPG or PNG works best</p>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+
+  <div class="preview-row" id="previewRow">
+    <img id="previewImg" src="" alt="Selected leaf photo">
+    <div class="preview-info">
+      <div class="preview-name" id="previewName"></div>
+      <div class="preview-status" id="previewStatus">Ready to check</div>
+    </div>
+    <button class="check-btn" id="checkBtn">Check this leaf</button>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="results" id="results">
+    <div class="results-grid">
+      <div class="image-pair">
+        <figure>
+          <img id="resultOriginal" src="" alt="Uploaded leaf">
+          <figcaption>What you uploaded</figcaption>
+        </figure>
+        <figure>
+          <img id="resultGradcam" src="" alt="Grad-CAM heatmap">
+          <figcaption>Where the model focused</figcaption>
+        </figure>
+      </div>
+
+      <div class="verdict">
+        <div class="verdict-label">Most likely</div>
+        <h2 class="verdict-name" id="verdictName">—</h2>
+
+        <div class="confidence-list" id="confidenceList"></div>
+
+        <p class="gradcam-note">The heatmap shows which parts of the leaf most influenced this result — warmer colors mean the model weighted that area more heavily. This is a portfolio/research demo, not a substitute for expert diagnosis.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>Built with a fine-tuned EfficientNet-B0, trained on the PlantVillage dataset.</footer>
+
+</div>
+
+<script>
+  const API_URL = "http://localhost:8000/predict";
+
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("fileInput");
+  const previewRow = document.getElementById("previewRow");
+  const previewImg = document.getElementById("previewImg");
+  const previewName = document.getElementById("previewName");
+  const previewStatus = document.getElementById("previewStatus");
+  const checkBtn = document.getElementById("checkBtn");
+  const errorMsg = document.getElementById("errorMsg");
+  const results = document.getElementById("results");
+  const resultOriginal = document.getElementById("resultOriginal");
+  const resultGradcam = document.getElementById("resultGradcam");
+  const verdictName = document.getElementById("verdictName");
+  const confidenceList = document.getElementById("confidenceList");
+
+  let selectedFile = null;
+
+  // ---- Dropzone interactions ----
+  dropzone.addEventListener("click", () => fileInput.click());
+
+  dropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropzone.classList.add("dragover");
+  });
+
+  dropzone.addEventListener("dragleave", () => {
+    dropzone.classList.remove("dragover");
+  });
+
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    if (e.dataTransfer.files.length > 0) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length > 0) {
+      handleFile(fileInput.files[0]);
+    }
+  });
+
+  function handleFile(file) {
+    if (!file.type.startsWith("image/")) {
+      showError("That file doesn't look like an image. Please choose a JPG or PNG.");
+      return;
+    }
+
+    selectedFile = file;
+    hideError();
+    results.classList.remove("active");
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewImg.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    previewName.textContent = file.name;
+    previewStatus.textContent = "Ready to check";
+    previewRow.classList.add("active");
+    checkBtn.disabled = false;
+  }
+
+  // ---- Submit to API ----
+  checkBtn.addEventListener("click", async () => {
+    if (!selectedFile) return;
+
+    checkBtn.disabled = true;
+    previewStatus.textContent = "Checking...";
+    hideError();
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `Server returned an error (status ${response.status})`);
+      }
+
+      const data = await response.json();
+      displayResults(data);
+      previewStatus.textContent = "Done";
+    } catch (err) {
+      // Distinguish a network failure (server not running / CORS / wrong URL)
+      // from a server-side error the API deliberately returned.
+      if (err instanceof TypeError) {
+        showError("Couldn't reach the server. Make sure the backend is running at " + API_URL + " and try again.");
+      } else {
+        showError(err.message);
+      }
+      previewStatus.textContent = "Ready to check";
+    } finally {
+      checkBtn.disabled = false;
+    }
+  });
+
+  function displayResults(data) {
+    resultOriginal.src = previewImg.src;
+    resultGradcam.src = "data:image/png;base64," + data.gradcam_image_base64;
+    verdictName.textContent = data.predicted_class;
+
+    confidenceList.innerHTML = "";
+    data.top3.forEach((item) => {
+      const pct = Math.round(item.confidence * 100);
+      const row = document.createElement("div");
+      row.className = "confidence-row";
+      row.innerHTML = `
+        <div class="row-top">
+          <span>${item.class_name}</span>
+          <span class="pct">${pct}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: ${pct}%"></div>
+        </div>
+      `;
+      confidenceList.appendChild(row);
+    });
+
+    results.classList.add("active");
+    results.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add("active");
+  }
+
+  function hideError() {
+    errorMsg.classList.remove("active");
+  }
+</script>
+
+</body>
+</html>
