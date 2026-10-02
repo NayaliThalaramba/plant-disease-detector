@@ -1,12 +1,3 @@
-"""
-Day 4 - Step 1: Evaluate the trained model on the held-out TEST set
-(data it has never seen in training or validation), and build a
-confusion matrix to see which classes get confused with each other.
-
-Run from project root:
-    python src/evaluate.py
-"""
-
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,7 +24,7 @@ def load_trained_model(device):
 
 
 def evaluate_on_test(model, test_loader, device):
-    """Runs the model on the full test set, returns true and predicted labels."""
+    
     all_preds = []
     all_labels = []
 
@@ -50,11 +41,7 @@ def evaluate_on_test(model, test_loader, device):
 
 
 def plot_confusion_matrix(y_true, y_pred, class_names):
-    """
-    Plots a normalized confusion matrix. Normalized (row-wise) means each
-    row sums to 1.0, showing what FRACTION of each true class was predicted
-    as each class — easier to read than raw counts when classes are imbalanced.
-    """
+    
     cm = confusion_matrix(y_true, y_pred)
     cm_normalized = cm.astype("float") / cm.sum(axis=1, keepdims=True)
 
@@ -78,12 +65,7 @@ def plot_confusion_matrix(y_true, y_pred, class_names):
 
 
 def find_most_confused_pairs(cm_normalized, class_names, top_n=10):
-    """
-    Finds the top N (true_class, predicted_class) pairs with the highest
-    OFF-DIAGONAL confusion rate — i.e. where the model most often mistakes
-    one class for another. Useful for writing up a methodology section:
-    "the model most often confuses X with Y, likely because..."
-    """
+    
     n = len(class_names)
     pairs = []
     for i in range(n):
@@ -120,7 +102,7 @@ def main():
     report = classification_report(y_true, y_pred, target_names=class_names, digits=3)
     print(report)
 
-    # Save the report to a text file for reference in your write-up later
+    
     with open("notebooks/classification_report.txt", "w") as f:
         f.write(f"Test set accuracy: {test_acc:.4f}\n\n")
         f.write(report)

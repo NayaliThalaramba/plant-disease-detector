@@ -1,27 +1,16 @@
-"""
-Day 2 - Step 1 (CSV version): Split the PlantVillage 'color' dataset into
-train / val / test SETS, saved as CSV files containing image paths + labels.
-
-No images are copied — this just records which original file belongs to
-which split, so data/raw/ stays completely untouched.
-
-Run from the project root:
-    python src/split_data.py
-"""
-
 import os
 import random
 import csv
 from pathlib import Path
 
-random.seed(42)  # reproducibility
+random.seed(42)  
 
 SOURCE_DIR = Path("data/raw/plantvillage dataset/color")
 OUTPUT_DIR = Path("data/processed")
 
 TRAIN_RATIO = 0.70
 VAL_RATIO = 0.15
-TEST_RATIO = 0.15  # implied remainder
+TEST_RATIO = 0.15  
 
 
 def split_dataset():
@@ -32,8 +21,7 @@ def split_dataset():
     classes = sorted([d.name for d in SOURCE_DIR.iterdir() if d.is_dir()])
     print(f"Found {len(classes)} classes")
 
-    # class_name -> integer label, alphabetical order (matches how
-    # torchvision's ImageFolder assigns labels, for consistency)
+    
     class_to_idx = {cls: idx for idx, cls in enumerate(classes)}
 
     rows = {"train": [], "val": [], "test": []}
@@ -48,7 +36,7 @@ def split_dataset():
         n = len(images)
         n_train = int(n * TRAIN_RATIO)
         n_val = int(n * VAL_RATIO)
-        # test gets whatever remains, avoids rounding losses
+        
 
         train_files = images[:n_train]
         val_files = images[n_train:n_train + n_val]
@@ -66,9 +54,9 @@ def split_dataset():
         summary[cls] = (len(train_files), len(val_files), len(test_files))
         print(f"{cls}: train={len(train_files)}, val={len(val_files)}, test={len(test_files)}")
 
-    # Write CSVs: filepath, label (int), class_name (str, for readability)
+    
     for split in ["train", "val", "test"]:
-        random.shuffle(rows[split])  # shuffle so classes aren't grouped in the file
+        random.shuffle(rows[split])  
         csv_path = OUTPUT_DIR / f"{split}.csv"
         with open(csv_path, "w", newline="") as f:
             writer = csv.writer(f)
@@ -76,8 +64,7 @@ def split_dataset():
             writer.writerows(rows[split])
         print(f"Wrote {len(rows[split])} rows to {csv_path}")
 
-    # Also save the class list, in order, so dataset.py can rebuild
-    # the same label <-> class_name mapping later (e.g. for the API on Day 5)
+    
     classes_path = OUTPUT_DIR / "classes.csv"
     with open(classes_path, "w", newline="") as f:
         writer = csv.writer(f)

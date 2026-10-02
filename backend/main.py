@@ -1,26 +1,9 @@
-"""
-Day 5: FastAPI backend for the plant disease detector.
-
-Endpoints:
-    GET  /              - health check
-    GET  /classes        - list all disease classes the model knows
-    POST /predict         - upload an image, get prediction + confidence
-                             + top-3 alternatives + Grad-CAM overlay (base64 PNG)
-
-Run from project root:
-    uvicorn backend.main:app --reload --port 8000
-
-Then visit http://localhost:8000/docs for interactive API testing (built
-into FastAPI automatically - very useful for testing without a frontend yet).
-"""
-
 import io
 import base64
 import sys
 import os
 
-# Allow imports from src/ (model.py, dataset.py transforms) since this
-# file lives in backend/, one level down from project root.
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import torch
@@ -34,7 +17,7 @@ from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
 import matplotlib
-matplotlib.use("Agg")  # no GUI backend needed on a server
+matplotlib.use("Agg")  
 from PIL import Image as PILImage
 
 from model import get_device, build_model
@@ -44,10 +27,7 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "best_model
 
 app = FastAPI(title="Plant Disease Detector API")
 
-# CORS: allows a frontend running on a different port/origin (e.g. a plain
-# HTML file opened locally, or a dev server on port 3000) to call this API.
-# For a portfolio/demo project, allowing all origins is fine; if you ever
-# deploy this publicly with real users, tighten this to your actual frontend domain.
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -55,7 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---- Load model ONCE at startup, not per-request (per-request would be very slow) ----
+
 device = get_device()
 checkpoint = torch.load(MODEL_PATH, map_location=device, weights_only=False)
 CLASS_NAMES = checkpoint["class_names"]
@@ -75,6 +55,12 @@ class PredictionResult(BaseModel):
     confidence: float
     top3: list[dict]
     gradcam_image_base64: str
+    low_confidence_warning: bool
+    warning_message: str | None = None
+
+
+
+LOW_CONFIDENCE_THRESHOLD = 0.70
 
 
 def unnormalize_for_display(tensor_img):
@@ -86,7 +72,7 @@ def unnormalize_for_display(tensor_img):
 
 
 def image_array_to_base64(img_array):
-    """Converts a numpy [0,255] uint8 RGB image array to a base64 PNG string."""
+    
     pil_img = PILImage.fromarray(img_array)
     buffer = io.BytesIO()
     pil_img.save(buffer, format="PNG")
@@ -94,10 +80,7 @@ def image_array_to_base64(img_array):
 
 
 def format_class_name(raw_name):
-    """
-    Converts 'Tomato___Late_blight' into something more readable:
-    'Tomato - Late blight'. Purely cosmetic for the frontend.
-    """
+    
     parts = raw_name.split("___")
     plant = parts[0].replace("_", " ")
     condition = parts[1].replace("_", " ") if len(parts) > 1 else ""
@@ -116,17 +99,16 @@ def list_classes():
 
 @app.post("/predict", response_model=PredictionResult)
 async def predict(file: UploadFile = File(...)):
-
-    # ---- Read and preprocess the uploaded image ----
+    
     try:
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
     except Exception:
-        raise HTTPException(status_code=400, detail="Could not read the uploaded file as an image")
+        raise HTTPException(status_code=400, detail="Could not read the uploaded file as an image. Please upload a valid JPG or PNG.")
 
     image_tensor = eval_transform(image).unsqueeze(0).to(device)
 
-    # ---- Run prediction ----
+    
     with torch.no_grad():
         outputs = model(image_tensor)
         probabilities = torch.softmax(outputs, dim=1)[0]
@@ -141,7 +123,7 @@ async def predict(file: UploadFile = File(...)):
     pred_class = format_class_name(CLASS_NAMES[pred_idx])
     pred_confidence = round(top3_probs[0].item(), 4)
 
-    # ---- Generate Grad-CAM for the predicted class ----
+    
     targets = [ClassifierOutputTarget(pred_idx)]
     grayscale_cam = cam_extractor(input_tensor=image_tensor, targets=targets)[0]
 
@@ -150,9 +132,19 @@ async def predict(file: UploadFile = File(...)):
 
     gradcam_b64 = image_array_to_base64(cam_overlay)
 
+    is_low_confidence = pred_confidence <= LOW_CONFIDENCE_THRESHOLD
+    warning_message = (
+        "The model isn't very confident about this one — it might not be a "
+        "clear photo of a leaf, or the disease isn't one of the 38 categories "
+        "it was trained on. Treat this result with caution."
+        if is_low_confidence else None
+    )
+
     return PredictionResult(
         predicted_class=pred_class,
         confidence=pred_confidence,
+        low_confidence_warning=is_low_confidence,
+        warning_message=warning_message,
         top3=top3,
         gradcam_image_base64=gradcam_b64,
     )

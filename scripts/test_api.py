@@ -1,12 +1,3 @@
-"""
-Quick test script for the /predict endpoint. Sends one image to your
-running backend and saves the returned Grad-CAM overlay to disk so you
-can visually confirm the whole pipeline works end-to-end.
-
-Usage:
-    python scripts/test_api.py path/to/some_leaf_photo.jpg
-"""
-
 import sys
 import base64
 import requests
@@ -29,7 +20,7 @@ def test_predict(image_path):
     for item in data["top3"]:
         print(f"  {item['class_name']}: {item['confidence']*100:.1f}%")
 
-    # Save the Grad-CAM image to disk for visual inspection
+    
     img_bytes = base64.b64decode(data["gradcam_image_base64"])
     output_path = "notebooks/api_test_gradcam.png"
     with open(output_path, "wb") as f:

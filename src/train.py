@@ -1,16 +1,3 @@
-"""
-Day 3 - Step 2: Training loop.
-
-Two-phase fine-tuning:
-  Phase 1: train only the new classifier head (base frozen) - fast, safe
-  Phase 2: unfreeze last 2 blocks, fine-tune at a lower LR - squeezes
-           out more accuracy by letting high-level features adapt to
-           leaf-specific patterns
-
-Run from project root:
-    python src/train.py
-"""
-
 import time
 import copy
 import torch
@@ -20,18 +7,18 @@ import matplotlib.pyplot as plt
 from dataset import get_dataloaders, compute_class_weights
 from model import get_device, build_model, unfreeze_last_n_blocks
 
-# ---- Hyperparameters ----
-PHASE1_EPOCHS = 5     # frozen base, training head only
-PHASE2_EPOCHS = 8     # fine-tuning last blocks
+
+PHASE1_EPOCHS = 5     
+PHASE2_EPOCHS = 8     
 PHASE1_LR = 1e-3
-PHASE2_LR = 1e-5      # much lower - we're nudging pretrained features, not overwriting them
-PATIENCE = 3          # early stopping: stop if val acc doesn't improve for this many epochs
+PHASE2_LR = 1e-5      
+PATIENCE = 3          
 
 MODEL_SAVE_PATH = "models/best_model.pt"
 
 
 def run_epoch(model, dataloader, criterion, optimizer, device, train=True):
-    """Runs one epoch of training or evaluation. Returns (avg_loss, accuracy)."""
+    
     model.train() if train else model.eval()
 
     running_loss = 0.0
@@ -65,10 +52,7 @@ def run_epoch(model, dataloader, criterion, optimizer, device, train=True):
 def train_phase(model, train_loader, val_loader, criterion, optimizer, device,
                  num_epochs, phase_name, history, best_val_acc, best_model_state,
                  patience_counter):
-    """
-    Trains for num_epochs, tracking history and best model.
-    Returns (best_val_acc, best_model_state, patience_counter, stopped_early)
-    """
+    
     for epoch in range(num_epochs):
         start = time.time()
 
@@ -103,7 +87,7 @@ def train_phase(model, train_loader, val_loader, criterion, optimizer, device,
 
 
 def plot_history(history):
-    """Saves a plot of train/val loss and accuracy over all epochs."""
+    
     epochs = range(1, len(history["train_loss"]) + 1)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
@@ -122,7 +106,7 @@ def plot_history(history):
     ax2.set_title("Accuracy over epochs")
     ax2.legend()
 
-    # Mark where phase 2 starts, if applicable
+    
     phase1_len = history["phase"].count("phase1")
     if phase1_len < len(epochs) and phase1_len > 0:
         ax1.axvline(x=phase1_len + 0.5, color="gray", linestyle="--", alpha=0.5)
@@ -157,7 +141,7 @@ def main():
     best_model_state = None
     patience_counter = 0
 
-    # ---- PHASE 1: train only the classifier head ----
+    
     print("=" * 60)
     print("PHASE 1: Training classifier head (base frozen)")
     print("=" * 60)
@@ -171,13 +155,13 @@ def main():
         PHASE1_EPOCHS, "phase1", history, best_val_acc, best_model_state, patience_counter
     )
 
-    # ---- PHASE 2: unfreeze last blocks, fine-tune at lower LR ----
+    
     print("\n" + "=" * 60)
     print("PHASE 2: Fine-tuning last blocks (lower learning rate)")
     print("=" * 60)
 
     model = unfreeze_last_n_blocks(model, n=2)
-    patience_counter = 0  # reset patience for the new phase
+    patience_counter = 0  
 
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()), lr=PHASE2_LR
@@ -188,7 +172,7 @@ def main():
         PHASE2_EPOCHS, "phase2", history, best_val_acc, best_model_state, patience_counter
     )
 
-    # ---- Save best model ----
+    
     import os
     os.makedirs("models", exist_ok=True)
     torch.save({
