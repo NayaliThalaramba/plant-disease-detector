@@ -2,7 +2,7 @@ import sys
 import base64
 import requests
 
-API_URL = "http://localhost:8000/predict"
+API_URL = "https://plant-disease-detector-dvoq.onrender.com/predict"
 
 def test_predict(image_path):
     with open(image_path, "rb") as f:

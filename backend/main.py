@@ -39,7 +39,7 @@ app.add_middleware(
 device = get_device()
 checkpoint = torch.load(MODEL_PATH, map_location=device, weights_only=False)
 CLASS_NAMES = checkpoint["class_names"]
-model = build_model(num_classes=len(CLASS_NAMES), freeze_base=False)
+model = build_model(num_classes=len(CLASS_NAMES), freeze_base=False, pretrained=False)
 model.load_state_dict(checkpoint["model_state_dict"])
 model = model.to(device)
 model.eval()
